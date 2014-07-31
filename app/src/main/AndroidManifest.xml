@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="me.xuyuan.notegg" >
 
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
@@ -16,6 +19,36 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".NotebookListActivity"
+            android:label="@string/title_activity_notebook_list"
+            android:parentActivityName=".MainActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="me.xuyuan.notegg.MainActivity" />
+        </activity>
+
+        <activity android:name="com.dropbox.sync.android.DbxAuthActivity" />
+        <activity
+            android:name="com.dropbox.client2.android.AuthActivity"
+            android:launchMode="singleTask" >
+            <intent-filter>
+                <data android:scheme="db-w7hk0g1c2pnqs8g" />
+
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name="com.dropbox.sync.android.DbxSyncService"
+            android:enabled="true"
+            android:exported="false"
+            android:label="Dropbox Sync" />
+
     </application>
 
 </manifest>

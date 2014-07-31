@@ -1,19 +1,20 @@
 package me.xuyuan.notegg;
 
-import android.support.v7.app.ActionBarActivity;
-import android.support.v7.app.ActionBar;
-import android.support.v4.app.Fragment;
+import android.content.Intent;
 import android.os.Bundle;
-import android.view.LayoutInflater;
+import android.support.v7.app.ActionBarActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.os.Build;
+
+import com.dropbox.sync.android.DbxPath;
 
 
+public class MainActivity extends ActionBarActivity implements FolderListFragment.OnFragmentInteractionListener {
+    private static final String LOG_TAG = MainActivity.class.getSimpleName();
 
-public class MainActivity extends ActionBarActivity {
+    protected DbxPath mPath = DbxPath.ROOT.getChild("0-Main");
+    protected boolean mListFolder = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -21,16 +22,16 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
-                    .add(R.id.container, new PlaceholderFragment())
+                    .add(R.id.container, FolderListFragment.newInstance(mPath, mListFolder))
                     .commit();
         }
     }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
+        getMenuInflater().inflate(R.menu.notebooklist, menu);
         return true;
     }
 
@@ -43,22 +44,26 @@ public class MainActivity extends ActionBarActivity {
         if (id == R.id.action_settings) {
             return true;
         }
+        if (id == R.id.action_notebooks_list) {
+            Intent intent = new Intent(this, NotebookListActivity.class);
+            startActivityForResult(intent, 1);
+            return true;
+        }
         return super.onOptionsItemSelected(item);
     }
 
-    /**
-     * A placeholder fragment containing a simple view.
-     */
-    public static class PlaceholderFragment extends Fragment {
-
-        public PlaceholderFragment() {
-        }
-
-        @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                Bundle savedInstanceState) {
-            View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-            return rootView;
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.d(LOG_TAG, "selected folder " + data.getStringExtra(FolderListFragment.PATH_KEY));
+        if (resultCode == RESULT_OK) {
+            FolderListFragment folderListFragment = (FolderListFragment) getSupportFragmentManager().findFragmentById(R.id.container);
+            folderListFragment.doLoad(new DbxPath(data.getStringExtra(FolderListFragment.PATH_KEY)), false, true);
         }
     }
+
+    @Override
+    public void onFragmentInteraction(DbxPath path) {
+        Log.d(LOG_TAG, path.toString());
+    }
+
 }
