@@ -13,18 +13,15 @@ import com.dropbox.sync.android.DbxPath;
 public class MainActivity extends ActionBarActivity implements FolderListFragment.OnFragmentInteractionListener {
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
 
-    protected DbxPath mPath = DbxPath.ROOT.getChild("0-Main");
-    protected boolean mListFolder = false;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction()
-                    .add(R.id.container, FolderListFragment.newInstance(mPath, mListFolder))
-                    .commit();
-        }
+//        if (savedInstanceState == null) {
+//            getSupportFragmentManager().beginTransaction()
+//                    .add(R.id.container, FolderListFragment.newInstance(mPath, mListFolder))
+//                    .commit();
+//        }
     }
 
     @Override
@@ -56,7 +53,7 @@ public class MainActivity extends ActionBarActivity implements FolderListFragmen
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         Log.d(LOG_TAG, "selected folder " + data.getStringExtra(FolderListFragment.PATH_KEY));
         if (resultCode == RESULT_OK) {
-            FolderListFragment folderListFragment = (FolderListFragment) getSupportFragmentManager().findFragmentById(R.id.container);
+            FolderListFragment folderListFragment = (FolderListFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_folder_list);
             folderListFragment.doLoad(new DbxPath(data.getStringExtra(FolderListFragment.PATH_KEY)), false, true);
         }
     }

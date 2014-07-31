@@ -2,6 +2,7 @@ package me.xuyuan.notegg;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -12,9 +13,11 @@ public class NotebookListActivity extends MainActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        this.mPath = DbxPath.ROOT;
-        this.mListFolder = true;
         super.onCreate(savedInstanceState);
+        FolderListFragment folderListFragment = (FolderListFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_folder_list);
+        Log.d(LOG_TAG, "Set mPath to Root");
+        folderListFragment.mPath = DbxPath.ROOT;
+        folderListFragment.mListFolder = true;
     }
 
     @Override

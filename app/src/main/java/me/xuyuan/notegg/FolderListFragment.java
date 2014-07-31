@@ -8,19 +8,21 @@ import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.Loader;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
 
 import com.dropbox.sync.android.DbxAccountManager;
+import com.dropbox.sync.android.DbxException;
 import com.dropbox.sync.android.DbxFileInfo;
+import com.dropbox.sync.android.DbxFileSystem;
 import com.dropbox.sync.android.DbxPath;
 
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
+import me.xuyuan.notegg.data.FolderListComparator;
 import me.xuyuan.notegg.data.FolderLoader;
 
 /**
@@ -31,18 +33,22 @@ import me.xuyuan.notegg.data.FolderLoader;
  * interface.
  */
 public class FolderListFragment extends ListFragment implements LoaderCallbacks<List<DbxFileInfo>> {
+    private static final String LOG_TAG = FolderListFragment.class.getSimpleName();
+
     public static final String PATH_KEY = "path_key";
     public static final String LIST_FOLDER_KEY = "list_folder_key";
 
-    private static final String LOG_TAG = FolderListFragment.class.getSimpleName();
+    public DbxPath mPath;
+    public boolean mListFolder;
 
     private OnFragmentInteractionListener mListener;
     private View mLinkButton;
+    private View mEmptyText;
+    private View mLoadingSpinner;
     private DbxAccountManager mAccountManager;
-    private DbxPath mPath;
-    private boolean mListFolder;
 
-    public static FolderListFragment newInstance(DbxPath path, boolean listFolder) {
+    // set to private, not been used any more
+    private static FolderListFragment newInstance(DbxPath path, boolean listFolder) {
         FolderListFragment fragment = new FolderListFragment();
         Bundle args = new Bundle();
         args.putString(PATH_KEY, path.toString());
@@ -55,7 +61,7 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
      * Mandatory empty constructor for the fragment manager to instantiate the
      * fragment (e.g. upon screen orientation changes).
      */
-    private FolderListFragment() {
+    public FolderListFragment() {
     }
 
     @Override
@@ -67,6 +73,33 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
         if (getArguments() != null) {
             mPath = new DbxPath(getArguments().getString(PATH_KEY));
             mListFolder = getArguments().getBoolean(LIST_FOLDER_KEY);
+        }
+
+        if (null == mPath) {
+            try {
+                DbxFileSystem fileSystem = DbxFileSystem.forAccount(mAccountManager.getLinkedAccount());
+                List<DbxFileInfo> entries = fileSystem.listFolder(DbxPath.ROOT);
+                Iterator<DbxFileInfo> iterator = entries.iterator();
+                while (iterator.hasNext()) {
+                    DbxFileInfo fileInfo = iterator.next();
+                    if (mListFolder) {
+                        if (!fileInfo.isFolder) {
+                            iterator.remove();
+                        }
+                    }
+                }
+                Collections.sort(entries, FolderListComparator.getNameFirst(true));
+                if (entries.size() > 0) {
+                    mPath = entries.get(0).path;
+                } else {
+                    mPath = DbxPath.ROOT.getChild("Main");
+                    fileSystem.createFolder(mPath);
+                }
+            } catch (DbxException.Unauthorized unauthorized) {
+                unauthorized.printStackTrace();
+            } catch (DbxException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -89,6 +122,8 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
                 mAccountManager.startLinkFromSupportFragment(FolderListFragment.this, 0);
             }
         });
+        mEmptyText = view.findViewById(R.id.empty_text);
+        mLoadingSpinner = view.findViewById(R.id.list_loading);
 
         return view;
     }
@@ -96,6 +131,7 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        getListView().setEmptyView(view.findViewById(android.R.id.empty));
         if (mAccountManager.hasLinkedAccount()) {
             Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx on view created, show linked view");
             showLinkedView();
@@ -138,6 +174,9 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
         Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx on detach");
         super.onDetach();
         mListener = null;
+        mAccountManager = null;
+        mPath = null;
+        mListFolder = false;
     }
 
     @Override
@@ -164,6 +203,8 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
     @Override
     public void onLoadFinished(Loader<List<DbxFileInfo>> loader, List<DbxFileInfo> data) {
         Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx on load finished, set list adapter to " + FolderAdapter.class.getSimpleName());
+        mEmptyText.setVisibility(View.VISIBLE);
+        mLoadingSpinner.setVisibility(View.GONE);
         setListAdapter(new FolderAdapter(getActivity(), data));
     }
 
@@ -190,6 +231,8 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
     private void showUnlinkedView() {
         getListView().setVisibility(View.GONE);
         mLinkButton.setVisibility(View.VISIBLE);
+        mEmptyText.setVisibility(View.GONE);
+        mLoadingSpinner.setVisibility(View.GONE);
     }
 
     private void showLinkedView() {
@@ -200,6 +243,7 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
     public void doLoad(DbxPath path, boolean listFolder, boolean reset) {
         mPath = path;
         mListFolder = listFolder;
+        mLoadingSpinner.setVisibility(View.VISIBLE);
         if (mAccountManager.hasLinkedAccount()) {
             Bundle args = new Bundle();
             args.putString(PATH_KEY, path.toString());

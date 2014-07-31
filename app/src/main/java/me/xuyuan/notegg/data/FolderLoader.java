@@ -68,6 +68,7 @@ public class FolderLoader extends AsyncTaskLoader<List<DbxFileInfo>> {
     private DbxFileSystem.PathListener mChangeListener = new DbxFileSystem.PathListener() {
         @Override
         public void onPathChange(DbxFileSystem fs, DbxPath registeredPath, Mode registeredMode) {
+            Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx DbxFileSystem.PathListener on path change");
             onContentChanged();
         }
     };
