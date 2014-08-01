@@ -38,8 +38,8 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
     public static final String PATH_KEY = "path_key";
     public static final String LIST_FOLDER_KEY = "list_folder_key";
 
-    public DbxPath mPath;
-    public boolean mListFolder;
+    private DbxPath mPath;
+    private boolean mListFolder;
 
     private OnFragmentInteractionListener mListener;
     private View mLinkButton;
@@ -47,11 +47,12 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
     private View mLoadingSpinner;
     private DbxAccountManager mAccountManager;
 
-    // set to private, not been used any more
-    private static FolderListFragment newInstance(DbxPath path, boolean listFolder) {
+    public static FolderListFragment newInstance(DbxPath path, boolean listFolder) {
         FolderListFragment fragment = new FolderListFragment();
         Bundle args = new Bundle();
-        args.putString(PATH_KEY, path.toString());
+        if (null != path) {
+            args.putString(PATH_KEY, path.toString());
+        }
         args.putBoolean(LIST_FOLDER_KEY, listFolder);
         fragment.setArguments(args);
         return fragment;
@@ -71,13 +72,16 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
         setHasOptionsMenu(true);
 
         if (getArguments() != null) {
-            mPath = new DbxPath(getArguments().getString(PATH_KEY));
+            if (null != getArguments().getString(PATH_KEY)) {
+                mPath = new DbxPath(getArguments().getString(PATH_KEY));
+            }
             mListFolder = getArguments().getBoolean(LIST_FOLDER_KEY);
         }
 
-        if (null == mPath) {
-            try {
-                DbxFileSystem fileSystem = DbxFileSystem.forAccount(mAccountManager.getLinkedAccount());
+        try {
+            DbxFileSystem fileSystem = DbxFileSystem.forAccount(mAccountManager.getLinkedAccount());
+            if (null == mPath || !fileSystem.isFolder(mPath)) {
+                Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx invalid path " + mPath + ", use the 1st folder in Root instead");
                 List<DbxFileInfo> entries = fileSystem.listFolder(DbxPath.ROOT);
                 Iterator<DbxFileInfo> iterator = entries.iterator();
                 while (iterator.hasNext()) {
@@ -95,11 +99,11 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
                     mPath = DbxPath.ROOT.getChild("Main");
                     fileSystem.createFolder(mPath);
                 }
-            } catch (DbxException.Unauthorized unauthorized) {
-                unauthorized.printStackTrace();
-            } catch (DbxException e) {
-                e.printStackTrace();
             }
+        } catch (DbxException.Unauthorized unauthorized) {
+            unauthorized.printStackTrace();
+        } catch (DbxException e) {
+            e.printStackTrace();
         }
     }
 

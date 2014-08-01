@@ -1,8 +1,6 @@
 package me.xuyuan.notegg;
 
 import android.content.Intent;
-import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -10,15 +8,6 @@ import com.dropbox.sync.android.DbxPath;
 
 public class NotebookListActivity extends MainActivity {
     private static final String LOG_TAG = NotebookListActivity.class.getSimpleName();
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        FolderListFragment folderListFragment = (FolderListFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_folder_list);
-        Log.d(LOG_TAG, "Set mPath to Root");
-        folderListFragment.mPath = DbxPath.ROOT;
-        folderListFragment.mListFolder = true;
-    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

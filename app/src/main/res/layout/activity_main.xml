@@ -1,8 +1,7 @@
-<fragment xmlns:android="http://schemas.android.com/apk/res/android"
-xmlns:tools="http://schemas.android.com/tools"
-android:id="@+id/fragment_folder_list"
-android:name="me.xuyuan.notegg.FolderListFragment"
-android:layout_width="match_parent"
-android:layout_height="match_parent"
-tools:context="me.xuyuan.notegg.FolderListFragment"
-tools:layout="@android:layout/list_content" />
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/folder_list_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity"
+    tools:ignore="MergeRootFrame" />

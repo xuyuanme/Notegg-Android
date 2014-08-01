@@ -15,13 +15,16 @@ public class MainActivity extends ActionBarActivity implements FolderListFragmen
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx on create activity");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-//        if (savedInstanceState == null) {
-//            getSupportFragmentManager().beginTransaction()
-//                    .add(R.id.container, FolderListFragment.newInstance(mPath, mListFolder))
-//                    .commit();
-//        }
+        if (savedInstanceState == null) {
+            String path = getIntent().getStringExtra(FolderListFragment.PATH_KEY);
+            boolean listFolder = getIntent().getBooleanExtra(FolderListFragment.LIST_FOLDER_KEY, false);
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.folder_list_container, FolderListFragment.newInstance(path != null ? new DbxPath(path) : null, listFolder))
+                    .commit();
+        }
     }
 
     @Override
@@ -43,6 +46,8 @@ public class MainActivity extends ActionBarActivity implements FolderListFragmen
         }
         if (id == R.id.action_notebooks_list) {
             Intent intent = new Intent(this, NotebookListActivity.class);
+            intent.putExtra(FolderListFragment.PATH_KEY, "/");
+            intent.putExtra(FolderListFragment.LIST_FOLDER_KEY, true);
             startActivityForResult(intent, 1);
             return true;
         }
@@ -51,9 +56,9 @@ public class MainActivity extends ActionBarActivity implements FolderListFragmen
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        Log.d(LOG_TAG, "selected folder " + data.getStringExtra(FolderListFragment.PATH_KEY));
+        Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx selected folder " + data.getStringExtra(FolderListFragment.PATH_KEY));
         if (resultCode == RESULT_OK) {
-            FolderListFragment folderListFragment = (FolderListFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_folder_list);
+            FolderListFragment folderListFragment = (FolderListFragment) getSupportFragmentManager().findFragmentById(R.id.folder_list_container);
             folderListFragment.doLoad(new DbxPath(data.getStringExtra(FolderListFragment.PATH_KEY)), false, true);
         }
     }
