@@ -13,6 +13,8 @@ import com.dropbox.sync.android.DbxPath;
 public class MainActivity extends ActionBarActivity implements FolderListFragment.OnFragmentInteractionListener {
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
 
+    private static final int NOTEBOOK_LIST_INTENT = 101;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx on create activity");
@@ -48,7 +50,7 @@ public class MainActivity extends ActionBarActivity implements FolderListFragmen
             Intent intent = new Intent(this, NotebookListActivity.class);
             intent.putExtra(FolderListFragment.PATH_KEY, "/");
             intent.putExtra(FolderListFragment.LIST_FOLDER_KEY, true);
-            startActivityForResult(intent, 1);
+            startActivityForResult(intent, NOTEBOOK_LIST_INTENT);
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -56,16 +58,20 @@ public class MainActivity extends ActionBarActivity implements FolderListFragmen
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx selected folder " + data.getStringExtra(FolderListFragment.PATH_KEY));
-        if (resultCode == RESULT_OK) {
-            FolderListFragment folderListFragment = (FolderListFragment) getSupportFragmentManager().findFragmentById(R.id.folder_list_container);
-            folderListFragment.doLoad(new DbxPath(data.getStringExtra(FolderListFragment.PATH_KEY)), false, true);
+        if (requestCode == NOTEBOOK_LIST_INTENT) {
+            Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx selected folder " + data.getStringExtra(FolderListFragment.PATH_KEY));
+            if (resultCode == RESULT_OK) {
+                FolderListFragment folderListFragment = (FolderListFragment) getSupportFragmentManager().findFragmentById(R.id.folder_list_container);
+                folderListFragment.doLoad(new DbxPath(data.getStringExtra(FolderListFragment.PATH_KEY)), false, true);
+            }
         }
     }
 
     @Override
     public void onFragmentInteraction(DbxPath path) {
-        Log.d(LOG_TAG, path.toString());
+        Intent detailIntent = new Intent(this, NoteDetailActivity.class);
+        detailIntent.putExtra(NoteDetailFragment.PATH_KEY, path.toString());
+        startActivity(detailIntent);
     }
 
 }
