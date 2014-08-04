@@ -13,6 +13,7 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -53,6 +54,7 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
     private View mLoadingSpinner;
     private DbxAccountManager mAccountManager;
     private DbxFileSystem mfileSystem;
+    private List<DbxFileInfo> mFileInfoList;
 
     public static FolderListFragment newInstance(DbxPath path, boolean listFolder) {
         FolderListFragment fragment = new FolderListFragment();
@@ -149,6 +151,19 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
         } else {
             showUnlinkedView();
         }
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx on activity created");
+        super.onActivityCreated(savedInstanceState);
+        getListView().setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
+                removeItemFromList(position);
+                return true;
+            }
+        });
     }
 
     @Override
@@ -263,6 +278,7 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
         Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx on load finished, set list adapter to " + FolderAdapter.class.getSimpleName());
         mEmptyText.setVisibility(View.VISIBLE);
         mLoadingSpinner.setVisibility(View.GONE);
+        mFileInfoList = data;
         setListAdapter(new FolderAdapter(getActivity(), data));
     }
 
@@ -314,6 +330,34 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
                 getLoaderManager().initLoader(0, args, this);
             }
         }
+    }
+
+    private void removeItemFromList(final int position) {
+        final DbxPath path = ((DbxFileInfo) mFileInfoList.get(position)).path;
+
+        AlertDialog.Builder alert = new AlertDialog.Builder(getActivity());
+
+        alert.setTitle("WARNING");
+        alert.setMessage("Delete " + Util.stripExtension("txt", path.getName()) + "?");
+        alert.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                try {
+                    Log.d(LOG_TAG, "Deleting " + path.toString());
+                    mfileSystem.delete(path);
+                } catch (DbxException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        alert.show();
     }
 
 }
