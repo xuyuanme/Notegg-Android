@@ -33,7 +33,6 @@ public class MainActivity extends ActionBarActivity implements FolderListFragmen
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
-        getMenuInflater().inflate(R.menu.notebooklist, menu);
         return true;
     }
 
@@ -59,8 +58,8 @@ public class MainActivity extends ActionBarActivity implements FolderListFragmen
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == NOTEBOOK_LIST_INTENT) {
-            Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx selected folder " + data.getStringExtra(FolderListFragment.PATH_KEY));
             if (resultCode == RESULT_OK) {
+                Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx selected folder " + data.getStringExtra(FolderListFragment.PATH_KEY));
                 FolderListFragment folderListFragment = (FolderListFragment) getSupportFragmentManager().findFragmentById(R.id.folder_list_container);
                 folderListFragment.doLoad(new DbxPath(data.getStringExtra(FolderListFragment.PATH_KEY)), false, true);
             }

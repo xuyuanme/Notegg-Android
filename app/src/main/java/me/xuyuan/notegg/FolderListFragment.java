@@ -1,6 +1,8 @@
 package me.xuyuan.notegg;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
@@ -8,12 +10,16 @@ import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.Loader;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import com.dropbox.sync.android.DbxAccountManager;
 import com.dropbox.sync.android.DbxException;
+import com.dropbox.sync.android.DbxFile;
 import com.dropbox.sync.android.DbxFileInfo;
 import com.dropbox.sync.android.DbxFileSystem;
 import com.dropbox.sync.android.DbxPath;
@@ -46,6 +52,7 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
     private View mEmptyText;
     private View mLoadingSpinner;
     private DbxAccountManager mAccountManager;
+    private DbxFileSystem mfileSystem;
 
     public static FolderListFragment newInstance(DbxPath path, boolean listFolder) {
         FolderListFragment fragment = new FolderListFragment();
@@ -79,10 +86,10 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
         }
 
         try {
-            DbxFileSystem fileSystem = DbxFileSystem.forAccount(mAccountManager.getLinkedAccount());
-            if (null == mPath || !fileSystem.isFolder(mPath)) {
+            mfileSystem = DbxFileSystem.forAccount(mAccountManager.getLinkedAccount());
+            if (null == mPath || !mfileSystem.isFolder(mPath)) {
                 Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx invalid path " + mPath + ", use the 1st folder in Root instead");
-                List<DbxFileInfo> entries = fileSystem.listFolder(DbxPath.ROOT);
+                List<DbxFileInfo> entries = mfileSystem.listFolder(DbxPath.ROOT);
                 Iterator<DbxFileInfo> iterator = entries.iterator();
                 while (iterator.hasNext()) {
                     DbxFileInfo fileInfo = iterator.next();
@@ -97,7 +104,7 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
                     mPath = entries.get(0).path;
                 } else {
                     mPath = DbxPath.ROOT.getChild("Main");
-                    fileSystem.createFolder(mPath);
+                    mfileSystem.createFolder(mPath);
                 }
             }
         } catch (DbxException.Unauthorized unauthorized) {
@@ -156,6 +163,44 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
         } else {
             super.onActivityResult(requestCode, resultCode, data);
         }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        LayoutInflater li = LayoutInflater.from(getActivity());
+        View promptView = li.inflate(R.layout.prompt_alert, null);
+        TextView hint = (TextView) promptView.findViewById(R.id.editTextDialogHint);
+        final EditText userInput = (EditText) promptView.findViewById(R.id.editTextDialogUserInput);
+        if (id == R.id.action_add_note) {
+            hint.setText(R.string.message_alert_add_note);
+            AlertDialog alertDialog = Util.getPromptAlert(getActivity(), promptView, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int id) {
+                    try {
+                        DbxFile file = mfileSystem.create(mPath.getChild(userInput.getText().toString() + ".txt"));
+                        file.close();
+                        file = null;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+            alertDialog.show();
+        }
+        if (id == R.id.action_add_notebook) {
+            hint.setText(R.string.message_alert_add_notebook);
+            AlertDialog alertDialog = Util.getPromptAlert(getActivity(), promptView, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int id) {
+                    try {
+                        mfileSystem.createFolder(DbxPath.ROOT.getChild(userInput.getText().toString()));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+            alertDialog.show();
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
