@@ -229,6 +229,15 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
     }
 
     @Override
+    public void onResume() {
+        Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx on resume");
+        super.onResume();
+        if (!mPath.getName().equalsIgnoreCase("")) {
+            getActivity().setTitle(mPath.getName());
+        }
+    }
+
+    @Override
     public void onListItemClick(ListView l, View v, int position, long id) {
         super.onListItemClick(l, v, position, id);
 
