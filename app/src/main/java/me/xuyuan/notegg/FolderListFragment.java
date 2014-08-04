@@ -10,6 +10,8 @@ import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.Loader;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -45,6 +47,9 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
     public static final String PATH_KEY = "path_key";
     public static final String LIST_FOLDER_KEY = "list_folder_key";
 
+    private static final int REQUEST_LINK_TO_DBX_INTENT = 100;
+    private static final int NOTEBOOK_LIST_INTENT = 101;
+
     private DbxPath mPath;
     private boolean mListFolder;
 
@@ -52,20 +57,13 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
     private View mLinkButton;
     private View mEmptyText;
     private View mLoadingSpinner;
+    private MenuItem mAddNoteMenuItem;
+    private MenuItem mSwitchNotebookMenuItem;
+    private MenuItem mAddNotebookMenuItem;
+    private boolean mShowMenuItems;
     private DbxAccountManager mAccountManager;
     private DbxFileSystem mfileSystem;
     private List<DbxFileInfo> mFileInfoList;
-
-    public static FolderListFragment newInstance(DbxPath path, boolean listFolder) {
-        FolderListFragment fragment = new FolderListFragment();
-        Bundle args = new Bundle();
-        if (null != path) {
-            args.putString(PATH_KEY, path.toString());
-        }
-        args.putBoolean(LIST_FOLDER_KEY, listFolder);
-        fragment.setArguments(args);
-        return fragment;
-    }
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -86,34 +84,6 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
             }
             mListFolder = getArguments().getBoolean(LIST_FOLDER_KEY);
         }
-
-        try {
-            mfileSystem = DbxFileSystem.forAccount(mAccountManager.getLinkedAccount());
-            if (null == mPath || !mfileSystem.isFolder(mPath)) {
-                Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx invalid path " + mPath + ", use the 1st folder in Root instead");
-                List<DbxFileInfo> entries = mfileSystem.listFolder(DbxPath.ROOT);
-                Iterator<DbxFileInfo> iterator = entries.iterator();
-                while (iterator.hasNext()) {
-                    DbxFileInfo fileInfo = iterator.next();
-                    if (mListFolder) {
-                        if (!fileInfo.isFolder) {
-                            iterator.remove();
-                        }
-                    }
-                }
-                Collections.sort(entries, FolderListComparator.getNameFirst(true));
-                if (entries.size() > 0) {
-                    mPath = entries.get(0).path;
-                } else {
-                    mPath = DbxPath.ROOT.getChild("Main");
-                    mfileSystem.createFolder(mPath);
-                }
-            }
-        } catch (DbxException.Unauthorized unauthorized) {
-            unauthorized.printStackTrace();
-        } catch (DbxException e) {
-            e.printStackTrace();
-        }
     }
 
     @Override
@@ -132,7 +102,7 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
         mLinkButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mAccountManager.startLinkFromSupportFragment(FolderListFragment.this, 0);
+                mAccountManager.startLinkFromSupportFragment(FolderListFragment.this, REQUEST_LINK_TO_DBX_INTENT);
             }
         });
         mEmptyText = view.findViewById(R.id.empty_text);
@@ -168,16 +138,43 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == 0) {
+        Log.d(LOG_TAG, "on activity result " + requestCode + " " + requestCode);
+        if (requestCode == REQUEST_LINK_TO_DBX_INTENT) {
             if (resultCode == Activity.RESULT_OK) {
                 // We are now linked.
                 Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx link account successful, show linked view, and do load");
+                try {
+                    mfileSystem = DbxFileSystem.forAccount(mAccountManager.getLinkedAccount());
+                } catch (DbxException.Unauthorized unauthorized) {
+                    unauthorized.printStackTrace();
+                }
                 showLinkedView();
+                if (null != mAddNoteMenuItem) mAddNoteMenuItem.setVisible(mShowMenuItems);
+                if (null != mAddNotebookMenuItem) mAddNotebookMenuItem.setVisible(mShowMenuItems);
+                if (null != mSwitchNotebookMenuItem)
+                    mSwitchNotebookMenuItem.setVisible(mShowMenuItems);
                 doLoad(mPath, mListFolder, true);
+            }
+        }
+        if (requestCode == NOTEBOOK_LIST_INTENT) {
+            if (resultCode == Activity.RESULT_OK) {
+                Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx selected folder " + data.getStringExtra(FolderListFragment.PATH_KEY));
+                doLoad(new DbxPath(data.getStringExtra(FolderListFragment.PATH_KEY)), false, true);
             }
         } else {
             super.onActivityResult(requestCode, resultCode, data);
         }
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        mAddNoteMenuItem = menu.findItem(R.id.action_add_note);
+        mAddNotebookMenuItem = menu.findItem(R.id.action_add_notebook);
+        mSwitchNotebookMenuItem = menu.findItem(R.id.action_switch_notebook);
+        if (null != mAddNoteMenuItem) mAddNoteMenuItem.setVisible(mShowMenuItems);
+        if (null != mAddNotebookMenuItem) mAddNotebookMenuItem.setVisible(mShowMenuItems);
+        if (null != mSwitchNotebookMenuItem) mSwitchNotebookMenuItem.setVisible(mShowMenuItems);
     }
 
     @Override
@@ -215,6 +212,11 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
             });
             alertDialog.show();
         }
+        if (id == R.id.action_switch_notebook) {
+            Intent intent = new Intent(getActivity(), NotebookListActivity.class);
+            startActivityForResult(intent, NOTEBOOK_LIST_INTENT);
+            return true;
+        }
         return super.onOptionsItemSelected(item);
     }
 
@@ -231,6 +233,13 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
         }
 
         mAccountManager = Util.getAccountManager(activity);
+        if (mAccountManager.hasLinkedAccount()) {
+            try {
+                mfileSystem = DbxFileSystem.forAccount(mAccountManager.getLinkedAccount());
+            } catch (DbxException.Unauthorized unauthorized) {
+                unauthorized.printStackTrace();
+            }
+        }
     }
 
     @Override
@@ -241,13 +250,14 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
         mAccountManager = null;
         mPath = null;
         mListFolder = false;
+        mfileSystem = null;
     }
 
     @Override
     public void onResume() {
         Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx on resume");
         super.onResume();
-        if (!mPath.getName().equalsIgnoreCase("")) {
+        if (mPath != null && !mPath.getName().equalsIgnoreCase("")) {
             getActivity().setTitle(mPath.getName());
         }
     }
@@ -307,28 +317,57 @@ public class FolderListFragment extends ListFragment implements LoaderCallbacks<
         mLinkButton.setVisibility(View.VISIBLE);
         mEmptyText.setVisibility(View.GONE);
         mLoadingSpinner.setVisibility(View.GONE);
+        mShowMenuItems = false;
     }
 
     private void showLinkedView() {
         getListView().setVisibility(View.VISIBLE);
         mLinkButton.setVisibility(View.GONE);
+        mShowMenuItems = true;
     }
 
     public void doLoad(DbxPath path, boolean listFolder, boolean reset) {
+        if (!mAccountManager.hasLinkedAccount()) return;
         mPath = path;
         mListFolder = listFolder;
         mLoadingSpinner.setVisibility(View.VISIBLE);
-        if (mAccountManager.hasLinkedAccount()) {
-            Bundle args = new Bundle();
-            args.putString(PATH_KEY, path.toString());
-            args.putBoolean(LIST_FOLDER_KEY, listFolder);
-            if (reset) {
-                Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx restart loader");
-                getLoaderManager().restartLoader(0, args, this);
-            } else {
-                Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx initial loader");
-                getLoaderManager().initLoader(0, args, this);
+
+        // Verify mPath, if it's invalid, assign one or create one.
+        try {
+            if (null == mPath || !mfileSystem.isFolder(mPath)) {
+                Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx invalid path " + mPath + ", use the 1st folder in Root instead");
+                List<DbxFileInfo> entries = mfileSystem.listFolder(DbxPath.ROOT);
+                Iterator<DbxFileInfo> iterator = entries.iterator();
+                while (iterator.hasNext()) {
+                    DbxFileInfo fileInfo = iterator.next();
+                    if (mListFolder) {
+                        if (!fileInfo.isFolder) {
+                            iterator.remove();
+                        }
+                    }
+                }
+                Collections.sort(entries, FolderListComparator.getNameFirst(true));
+                if (entries.size() > 0) {
+                    mPath = entries.get(0).path;
+                } else {
+                    Log.d(LOG_TAG, "create the /Main folder");
+                    mPath = DbxPath.ROOT.getChild("Main");
+                    mfileSystem.createFolder(mPath);
+                }
             }
+        } catch (DbxException e) {
+            e.printStackTrace();
+        }
+
+        Bundle args = new Bundle();
+        args.putString(PATH_KEY, mPath.toString());
+        args.putBoolean(LIST_FOLDER_KEY, mListFolder);
+        if (reset) {
+            Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx restart loader");
+            getLoaderManager().restartLoader(0, args, this);
+        } else {
+            Log.d(LOG_TAG, "xxxxxxxxxxxxxxxxxxxxxxxxxxxx initial loader");
+            getLoaderManager().initLoader(0, args, this);
         }
     }
 
