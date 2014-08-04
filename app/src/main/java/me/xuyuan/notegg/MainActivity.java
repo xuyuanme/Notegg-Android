@@ -42,9 +42,6 @@ public class MainActivity extends ActionBarActivity implements FolderListFragmen
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            return true;
-        }
         if (id == R.id.action_notebooks_list) {
             Intent intent = new Intent(this, NotebookListActivity.class);
             intent.putExtra(FolderListFragment.PATH_KEY, "/");
